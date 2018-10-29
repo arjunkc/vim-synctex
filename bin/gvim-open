@@ -1,0 +1,113 @@
+#!/usr/bin/python3
+
+import subprocess
+import re
+import sys
+import os
+import time
+
+# debug levels v, vv
+dbg = 'v'
+testing = False #If true, do not open file at the end, useful with debugging.
+#testing = True  #If true, do not open file at the end, useful with debugging.
+
+# the last argument to gvim-open must be the filename
+inputfile = os.path.normpath(os.path.expanduser(os.path.expandvars(sys.argv[-1])))
+# expand variables and things like ~ in the pathname
+logfile="/home/arjun/logs/gvim-open"
+lfile=open(logfile,'a')
+
+def write_to_log(*args):
+    # can handle strings and lists of strings
+    global lfile
+    msg = str(int(time.time())) + ' Debug:' 
+    if dbg == 'vv':
+        # print only on heavy debugs
+        print("args in write_to_log",args)
+    for x in args:
+        try:
+            if type(x) == list:
+                msg = msg + ' ' + ' '.join(x) + '\t'
+            elif type(x) == int:
+                msg = msg + ' ' + str(x) + '\t'
+            elif type(x) == str:
+                msg = msg + ' ' + x + '\t'
+        except:
+            err = "Type conversion error in write_to_log"
+            print(err)
+            lfile.write(err)
+    msg = msg + '\n'
+    print(msg)
+    lfile.write(msg)
+
+if dbg:
+    # the parens around the str protect it from argument expansion inside
+    # write_to_log
+    write_to_log("gvim-open called with\n" ,str(sys.argv))
+
+if dbg:
+    write_to_log("The input arguments were",sys.argv[1:])
+
+if dbg:
+    write_to_log("Normalized inputfile is" , inputfile)
+
+if dbg:
+    write_to_log("Testing:", str(testing))
+
+# the decode converts a bytes object to a string
+servers = subprocess.check_output(['gvim','--serverlist'],stderr=lfile).decode()
+servers = servers.split('\n')
+
+if dbg:
+    write_to_log("servers found:", servers)
+
+#default server. If file not found, you open it in the default server. This is a 
+# solution.
+foundserver = 'GVIM' 
+for x in servers:
+    if dbg:
+        write_to_log("current server:" , x)
+    if x != '':
+        out = subprocess.check_output(['gvim','--remote-expr','returnbufferlist#Buffers()','--servername',x]).decode()
+        if dbg:
+            write_to_log("files are:" ,out)
+    files = out.split('\n') #list of output
+    
+    if not isinstance(files,str):
+        # if the files returned is not a singleton and hence a string
+        # basestring was recommended on stackoverflow
+        for f in files:
+            #f = re.sub(r'.*?"(.*?)".*',r'\1', f) #extract filename. I needed this when I was using the old returnbufferlist command
+            if f != '':
+                f = os.path.normpath(f)
+                if dbg:
+                    write_to_log("current file" , f)
+                if os.path.exists(f) and os.path.samefile(inputfile,f):
+                    if dbg:
+                        write_to_log("found file" , f ,"servername:" , x)
+                    foundserver = x
+                    break
+        # this else goes with the for loop.
+        else: 
+            continue # execute if the loop was not broken out of
+        break # break out of the second loop if file was found
+    elif files != '' and os.path.samefile(inputfile,files):
+        #if only a single file is found, it will not be a list; cannot iterate over it as above.
+        foundserver = x
+        if dbg:
+            write_to_log("found file" , f , "servername" , x)
+        break
+
+gvimcommand = ['/usr/bin/gvim'] + ['--servername',foundserver] + sys.argv[1:] 
+
+if dbg:
+    write_to_log("the gvim command is" , str(gvimcommand))
+
+if not testing:
+    subprocess.Popen(gvimcommand,stdout=lfile,stderr=lfile)
+    #out = subprocess.check_output(gvimcommand)
+    write_to_log(out)
+
+lfile.close()
+            
+    
