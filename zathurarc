@@ -1,0 +1,1 @@
+set synctex-editor-command 'gvim-open --remote +%{line} %{input}'
