@@ -4,7 +4,7 @@ import subprocess
 import re
 import sys
 import os
-import time
+import datetime
 
 # debug levels v, vv
 dbg = 'v'
@@ -20,7 +20,7 @@ lfile=open(logfile,'a')
 def write_to_log(*args):
     # can handle strings and lists of strings
     global lfile
-    msg = str(int(time.time())) + ' Debug:' 
+    msg = datetime.datetime.today().isoformat() + ' Debug:' 
     if dbg == 'vv':
         # print only on heavy debugs
         print("args in write_to_log",args)
@@ -98,7 +98,8 @@ for x in servers:
             write_to_log("found file" , f , "servername" , x)
         break
 
-gvimcommand = ['/usr/bin/gvim'] + ['--servername',foundserver] + sys.argv[1:] 
+#gvimcommand = ['/usr/bin/gvim'] + ['--servername',foundserver] + sys.argv[1:] 
+gvimcommand = ['/usr/bin/gvim'] + ['--servername',foundserver] + sys.argv[1:-1] + [inputfile] 
 
 if dbg:
     write_to_log("the gvim command is" , str(gvimcommand))

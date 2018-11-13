@@ -87,3 +87,12 @@ In okular, go to Settings > Editor > Custom Editor and add the line
 
 
 
+# Weird bugs to fix
+
+gvim-open queries running gvim or vim processes using
+
+```
+gvim-open --remote-expr 'returnbufferlist#Buffers()' --servername <servername>
+```
+
+If the running gvim process has been suspended by linux, then this command will never return. One way to fix this is to check if the process is suspended using `ps` or some other linux mechanism. But I do not think I am going to do it. Another way to fix this is to have some sort of timeout mechanism for these commands.
